@@ -1,0 +1,195 @@
+<svg viewBox="0 0 1300 860" xmlns="http://www.w3.org/2000/svg" width="1300" height="860">
+  <title>JEPA World Model - Detailed layer-by-layer architecture with tensor shapes</title>
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+      text { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+      .lyr { font-size: 12px; font-weight: 600; }
+      .shp { font-size: 11px; font-weight: 600; }
+      .sub { font-size: 10px; font-weight: 400; }
+    </style>
+    <filter id="sh" x="-6%" y="-6%" width="115%" height="125%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#E2E8F0" stroke-width="0.5"/>
+    </pattern>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#64748B"/></marker>
+    <marker id="ar-v" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#8B5CF6"/></marker>
+    <marker id="ar-r" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#F43F5E"/></marker>
+    <marker id="ar-s" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#0EA5E9"/></marker>
+  </defs>
+
+  <rect width="1300" height="860" fill="#FFFFFF"/>
+  <rect width="1300" height="860" fill="url(#grid)" opacity="0.55"/>
+
+  <!-- Title -->
+  <text x="40" y="46" font-size="19" font-weight="700" fill="#111827">JEPA World Model - layer-by-layer (tensor shapes &amp; parameters)</text>
+  <text x="40" y="68" font-size="12.5" fill="#6B7280">1.40M trainable params  ·  input grid 3×8×16  ·  latent dim 128  ·  4 actions</text>
+  <line x1="40" y1="80" x2="360" y2="80" stroke="#6366F1" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- ================= ENCODER (vertical stack) ================= -->
+  <rect x="40" y="108" width="290" height="486" rx="14" fill="#6366F10D" stroke="#6366F140" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <rect x="58" y="98" width="220" height="22" rx="11" fill="#6366F1"/>
+  <text x="168" y="113" font-size="11" font-weight="600" fill="#FFFFFF" text-anchor="middle">ENCODER (online) · 1.07M</text>
+
+  <!-- E1 input -->
+  <g>
+    <rect x="65" y="130" width="240" height="50" rx="9" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.4" filter="url(#sh)"/>
+    <text x="185" y="151" class="lyr" fill="#92400E" text-anchor="middle">Input  oₜ</text>
+    <text x="185" y="168" class="sub" fill="#B45309" text-anchor="middle">grid: head / body / apple</text>
+  </g>
+  <text x="320" y="200" class="shp" fill="#475569">(3, 8, 16)</text>
+  <line x1="185" y1="180" x2="185" y2="210" stroke="#64748B" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- E2 conv1 -->
+  <g>
+    <rect x="65" y="212" width="240" height="50" rx="9" fill="#EEF2FF" stroke="#6366F1" stroke-width="1.4" filter="url(#sh)"/>
+    <rect x="65" y="212" width="4" height="50" rx="2" fill="#6366F1"/>
+    <text x="185" y="233" class="lyr" fill="#3730A3" text-anchor="middle">Conv2d 3→32, 3×3, pad 1 + ReLU</text>
+    <text x="185" y="250" class="sub" fill="#4F46E5" text-anchor="middle">spatial size preserved</text>
+    <rect x="246" y="217" width="52" height="17" rx="8" fill="#1E293B"/><text x="272" y="229" font-size="9" font-weight="700" fill="#FFF" text-anchor="middle">896</text>
+  </g>
+  <text x="320" y="282" class="shp" fill="#475569">(32, 8, 16)</text>
+  <line x1="185" y1="262" x2="185" y2="292" stroke="#64748B" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- E3 conv2 -->
+  <g>
+    <rect x="65" y="294" width="240" height="50" rx="9" fill="#EEF2FF" stroke="#6366F1" stroke-width="1.4" filter="url(#sh)"/>
+    <rect x="65" y="294" width="4" height="50" rx="2" fill="#6366F1"/>
+    <text x="185" y="315" class="lyr" fill="#3730A3" text-anchor="middle">Conv2d 32→64, 3×3, pad 1 + ReLU</text>
+    <text x="185" y="332" class="sub" fill="#4F46E5" text-anchor="middle">local receptive field 5×5</text>
+    <rect x="242" y="299" width="56" height="17" rx="8" fill="#1E293B"/><text x="270" y="311" font-size="9" font-weight="700" fill="#FFF" text-anchor="middle">18.5k</text>
+  </g>
+  <text x="320" y="364" class="shp" fill="#475569">(64, 8, 16)</text>
+  <line x1="185" y1="344" x2="185" y2="374" stroke="#64748B" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- E4 flatten -->
+  <g>
+    <rect x="65" y="376" width="240" height="44" rx="9" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4" filter="url(#sh)"/>
+    <text x="185" y="403" class="lyr" fill="#475569" text-anchor="middle">Flatten   (64 · 8 · 16)</text>
+  </g>
+  <text x="320" y="440" class="shp" fill="#475569">(8192)</text>
+  <line x1="185" y1="420" x2="185" y2="450" stroke="#64748B" stroke-width="1.6" marker-end="url(#ar)"/>
+  <!-- E5 linear -->
+  <g>
+    <rect x="65" y="452" width="240" height="50" rx="9" fill="#EEF2FF" stroke="#6366F1" stroke-width="1.4" filter="url(#sh)"/>
+    <rect x="65" y="452" width="4" height="50" rx="2" fill="#6366F1"/>
+    <text x="185" y="473" class="lyr" fill="#3730A3" text-anchor="middle">Linear 8192 → 128</text>
+    <text x="185" y="490" class="sub" fill="#4F46E5" text-anchor="middle">projection to latent</text>
+    <rect x="244" y="457" width="54" height="17" rx="8" fill="#1E293B"/><text x="271" y="469" font-size="9" font-weight="700" fill="#FFF" text-anchor="middle">1.05M</text>
+  </g>
+  <text x="148" y="556" class="sub" fill="#6366F1" text-anchor="middle">→ 95% of the encoder's weight is this one matrix</text>
+
+  <!-- s_t hub -->
+  <g>
+    <rect x="372" y="452" width="120" height="50" rx="10" fill="#FFFFFF" stroke="#334155" stroke-width="2" filter="url(#sh)"/>
+    <text x="432" y="473" font-size="15" font-weight="700" fill="#1E293B" text-anchor="middle">sₜ</text>
+    <text x="432" y="491" class="sub" fill="#64748B" text-anchor="middle">latent (128)</text>
+  </g>
+  <line x1="305" y1="477" x2="372" y2="477" stroke="#6366F1" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <!-- action + concat -->
+  <g>
+    <rect x="372" y="372" width="120" height="44" rx="10" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.4" filter="url(#sh)"/>
+    <text x="432" y="390" class="lyr" fill="#92400E" text-anchor="middle">Action aₜ</text>
+    <text x="432" y="406" class="sub" fill="#B45309" text-anchor="middle">one-hot (4)</text>
+  </g>
+  <g>
+    <rect x="540" y="446" width="120" height="62" rx="10" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5" filter="url(#sh)"/>
+    <text x="600" y="472" font-size="13" font-weight="600" fill="#334155" text-anchor="middle">concat</text>
+    <text x="600" y="489" class="sub" fill="#64748B" text-anchor="middle">[ sₜ , aₜ ]</text>
+    <text x="600" y="503" class="shp" fill="#1E293B" text-anchor="middle">(132)</text>
+  </g>
+  <line x1="492" y1="477" x2="540" y2="477" stroke="#64748B" stroke-width="1.6" marker-end="url(#ar)"/>
+  <path d="M 432,416 L 432,432 Q 432,446 452,446 L 580,446 Q 600,446 600,446" fill="none" stroke="#F59E0B" stroke-width="1.6" stroke-linecap="round" marker-end="url(#ar)"/>
+
+  <!-- fan-out from concat to the 3 MLP branches -->
+  <path d="M 660,470 L 700,470 Q 712,470 712,300 L 712,196 Q 712,184 732,184" fill="none" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" marker-end="url(#ar)"/>
+  <line x1="660" y1="486" x2="732" y2="486" stroke="#64748B" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M 660,494 L 700,494 Q 712,494 712,610 L 712,640 Q 712,652 732,652" fill="none" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" marker-end="url(#ar)"/>
+
+  <!-- ================= PREDICTOR ================= -->
+  <rect x="736" y="120" width="372" height="150" rx="12" fill="#8B5CF60D" stroke="#8B5CF6" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="736" y="120" width="4" height="150" rx="2" fill="#8B5CF6"/>
+  <text x="752" y="142" font-size="13" font-weight="700" fill="#6D28D9">PREDICTOR  ·  latent dynamics (residual)  ·  133k</text>
+  <text x="752" y="166" class="lyr" fill="#5B21B6">Linear(132 → 256) + ReLU</text>
+  <text x="752" y="188" class="lyr" fill="#5B21B6">Linear(256 → 256) + ReLU</text>
+  <text x="752" y="210" class="lyr" fill="#5B21B6">Linear(256 → 128)  =  Δ</text>
+  <text x="752" y="236" font-size="12" font-weight="700" fill="#6D28D9">ŝₜ₊₁ = sₜ + Δ      (residual update)</text>
+  <text x="752" y="255" class="sub" fill="#7C3AED">predicts the NEXT latent, never decodes to pixels</text>
+
+  <g>
+    <rect x="1128" y="168" width="120" height="54" rx="10" fill="#FAF5FF" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="4,3" filter="url(#sh)"/>
+    <text x="1188" y="190" font-size="14" font-weight="700" fill="#6D28D9" text-anchor="middle">ŝₜ₊₁</text>
+    <text x="1188" y="208" class="sub" fill="#7C3AED" text-anchor="middle">predicted (128)</text>
+  </g>
+  <line x1="1108" y1="195" x2="1128" y2="195" stroke="#8B5CF6" stroke-width="1.8" marker-end="url(#ar-v)"/>
+  <!-- residual skip from s_t -->
+  <path d="M 432,452 L 432,330 Q 432,318 452,318 L 1010,318 Q 1022,318 1022,306 L 1022,240 Q 1022,228 1010,228 L 905,228"
+        fill="none" stroke="#A78BFA" stroke-width="1.5" stroke-dasharray="5,4" stroke-linecap="round" marker-end="url(#ar-v)"/>
+  <text x="600" y="312" class="sub" fill="#7C3AED">residual skip:  sₜ  ⟶  + Δ</text>
+
+  <!-- ================= REWARD HEAD ================= -->
+  <rect x="736" y="430" width="372" height="118" rx="12" fill="#10B9810D" stroke="#10B981" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="736" y="430" width="4" height="118" rx="2" fill="#10B981"/>
+  <text x="752" y="452" font-size="13" font-weight="700" fill="#065F46">REWARD HEAD  ·  100k</text>
+  <text x="752" y="476" class="lyr" fill="#047857">Linear(132 → 256) + ReLU</text>
+  <text x="752" y="498" class="lyr" fill="#047857">Linear(256 → 256) + ReLU</text>
+  <text x="752" y="520" class="lyr" fill="#047857">Linear(256 → 1)   →   r̂   (scalar reward)</text>
+  <text x="752" y="539" class="sub" fill="#059669">weighted MSE  ·  +1 food / −1 death / ±0.1 shaping</text>
+  <g>
+    <rect x="1128" y="462" width="120" height="48" rx="10" fill="#ECFDF5" stroke="#10B981" stroke-width="1.4" filter="url(#sh)"/>
+    <text x="1188" y="491" font-size="14" font-weight="700" fill="#065F46" text-anchor="middle">r̂</text>
+  </g>
+  <line x1="1108" y1="486" x2="1128" y2="486" stroke="#10B981" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- ================= DONE HEAD ================= -->
+  <rect x="736" y="600" width="372" height="118" rx="12" fill="#10B9810D" stroke="#10B981" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="736" y="600" width="4" height="118" rx="2" fill="#10B981"/>
+  <text x="752" y="622" font-size="13" font-weight="700" fill="#065F46">DONE HEAD  ·  100k</text>
+  <text x="752" y="646" class="lyr" fill="#047857">Linear(132 → 256) + ReLU</text>
+  <text x="752" y="668" class="lyr" fill="#047857">Linear(256 → 256) + ReLU</text>
+  <text x="752" y="690" class="lyr" fill="#047857">Linear(256 → 1)  →  logit  →  σ</text>
+  <text x="752" y="709" class="sub" fill="#059669">BCE (pos_weight 15)  ·  p(death) for the action</text>
+  <g>
+    <rect x="1128" y="632" width="120" height="48" rx="10" fill="#ECFDF5" stroke="#10B981" stroke-width="1.4" filter="url(#sh)"/>
+    <text x="1188" y="655" font-size="13" font-weight="700" fill="#065F46" text-anchor="middle">p(death)</text>
+    <text x="1188" y="671" class="sub" fill="#047857" text-anchor="middle">[0, 1]</text>
+  </g>
+  <line x1="1108" y1="656" x2="1128" y2="656" stroke="#10B981" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- ================= TARGET ENCODER ================= -->
+  <rect x="40" y="616" width="430" height="96" rx="12" fill="#F0F9FF" stroke="#0EA5E9" stroke-width="1.5" stroke-dasharray="6,4" filter="url(#sh)"/>
+  <text x="58" y="640" font-size="12.5" font-weight="700" fill="#075985">TARGET ENCODER — EMA copy (stop-grad, frozen)</text>
+  <text x="58" y="662" class="sub" fill="#0369A1">same Conv→Conv→Flatten→Linear as the encoder</text>
+  <text x="58" y="680" class="shp" fill="#075985">oₜ₊₁ (3,8,16)  →  sₜ₊₁ (128)</text>
+  <text x="58" y="700" class="sub" fill="#0EA5E9">θ_target ← 0.99·θ_target + 0.01·θ_encoder   (no gradient)</text>
+  <g>
+    <rect x="352" y="636" width="106" height="52" rx="10" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="1.5"/>
+    <text x="405" y="658" font-size="13" font-weight="700" fill="#075985" text-anchor="middle">sₜ₊₁</text>
+    <text x="405" y="675" class="sub" fill="#0369A1" text-anchor="middle">target (128)</text>
+  </g>
+  <!-- EMA arrow encoder -> target encoder -->
+  <path d="M 185,594 L 185,604 Q 185,616 175,616 L 40,616" fill="none" stroke="#0EA5E9" stroke-width="1.5" stroke-dasharray="5,4" stroke-linecap="round" marker-end="url(#ar-s)"/>
+
+  <!-- ================= LOSS ================= -->
+  <rect x="600" y="744" width="540" height="86" rx="12" fill="#FFF1F2" stroke="#F43F5E" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="618" y="768" font-size="13" font-weight="700" fill="#9F1239">TRAINING LOSS  (computed in latent space)</text>
+  <text x="618" y="790" class="lyr" fill="#BE123C">25·‖ ŝₜ₊₁ − sg(sₜ₊₁) ‖²  +  25·var + 1·cov  (VICReg)</text>
+  <text x="618" y="811" class="lyr" fill="#BE123C">+ 10·MSE(r̂, r)  +  2·BCE(done)   ·  EMA update each step</text>
+  <!-- arrows into loss -->
+  <path d="M 1188,222 L 1188,360 Q 1188,372 1176,372 L 1160,372 Q 1148,372 1148,384 L 1148,744" fill="none" stroke="#F43F5E" stroke-width="1.4" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#ar-r)"/>
+  <text x="1158" y="300" class="sub" fill="#9F1239">ŝₜ₊₁</text>
+  <path d="M 405,688 L 405,726 Q 405,744 425,744 L 600,744" fill="none" stroke="#0EA5E9" stroke-width="1.4" stroke-dasharray="5,3" stroke-linecap="round" marker-end="url(#ar-r)"/>
+  <text x="430" y="738" class="sub" fill="#0369A1">sₜ₊₁ (target, stop-grad)</text>
+
+  <!-- params summary -->
+  <g transform="translate(40,744)">
+    <rect width="250" height="86" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#sh)"/>
+    <text x="14" y="22" font-size="10" font-weight="700" fill="#64748B" letter-spacing="0.5">PARAMETERS (trainable)</text>
+    <text x="14" y="42" class="sub" fill="#1E293B">Encoder (CNN)          ≈ 1.07 M</text>
+    <text x="14" y="58" class="sub" fill="#1E293B">Predictor               ≈ 0.13 M</text>
+    <text x="14" y="74" class="sub" fill="#1E293B">Reward + Done heads     ≈ 0.20 M</text>
+    <text x="170" y="42" font-size="12" font-weight="700" fill="#6366F1">Σ 1.40 M</text>
+    <text x="170" y="60" class="sub" fill="#94A3B8">target enc.</text>
+    <text x="170" y="74" class="sub" fill="#94A3B8">frozen (EMA)</text>
+  </g>
+</svg>

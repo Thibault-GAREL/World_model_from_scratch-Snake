@@ -1,0 +1,87 @@
+<svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" width="1180" height="600">
+  <title>Latent-space MPC - how the world model acts by planning, with no learned policy</title>
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+      text { font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+    <filter id="sh" x="-6%" y="-6%" width="115%" height="125%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/></filter>
+    <marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#94A3B8"/></marker>
+    <marker id="ag" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#10B981"/></marker>
+    <marker id="aa" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#F59E0B"/></marker>
+  </defs>
+  <rect width="1180" height="600" fill="#FFFFFF"/>
+  <text x="40" y="44" font-size="19" font-weight="700" fill="#111827">Control by planning - latent-space MPC (no learned policy)</text>
+  <text x="40" y="66" font-size="12.5" fill="#6B7280">at each step: imagine every action sequence inside the model, score it with the reward/done heads, play the best first move</text>
+
+  <!-- root -->
+  <g>
+    <rect x="40" y="270" width="120" height="60" rx="10" fill="#FFFFFF" stroke="#334155" stroke-width="2" filter="url(#sh)"/>
+    <text x="100" y="295" font-size="14" font-weight="700" fill="#1E293B" text-anchor="middle">sₜ</text>
+    <text x="100" y="313" font-size="9.5" fill="#64748B" text-anchor="middle">encode(obs)</text>
+  </g>
+
+  <!-- 4 lanes, one per first action -->
+  <!-- lane y centers -->
+  <!-- helper: each lane = chain of predicted latents -->
+  <!-- LANE UP (y=110) -->
+  <g font-size="10" font-weight="600">
+    <path d="M 160,285 L 195,285 Q 215,285 215,150 L 215,118 Q 215,110 235,110" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+    <text x="225" y="100" fill="#92400E">↑ UP</text>
+    <circle cx="260" cy="110" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="330" cy="110" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="400" cy="110" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="470" cy="110" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="540" cy="110" r="10" fill="#F5F3FF" stroke="#8B5CF6"/>
+    <line x1="270" y1="110" x2="320" y2="110" stroke="#CBD5E1" stroke-width="1.4"/><line x1="340" y1="110" x2="390" y2="110" stroke="#CBD5E1" stroke-width="1.4"/><line x1="410" y1="110" x2="460" y2="110" stroke="#CBD5E1" stroke-width="1.4"/><line x1="480" y1="110" x2="530" y2="110" stroke="#CBD5E1" stroke-width="1.4"/>
+    <text x="400" y="92" fill="#64748B" font-weight="400" text-anchor="middle">imagine ŝₜ₊₁ … ŝₜ₊₅</text>
+    <rect x="572" y="94" width="150" height="32" rx="8" fill="#FFF1F2" stroke="#F43F5E" stroke-width="1.3"/><text x="647" y="114" fill="#9F1239" text-anchor="middle">R = −0.8  (hits wall)</text>
+  </g>
+  <!-- LANE RIGHT (y=205) - BEST PATH -->
+  <g font-size="10" font-weight="600">
+    <path d="M 160,295 L 195,295 Q 215,295 215,240 L 215,213 Q 215,205 235,205" fill="none" stroke="#10B981" stroke-width="2" marker-end="url(#ag)"/>
+    <text x="222" y="196" fill="#92400E">→ RIGHT</text>
+    <circle cx="280" cy="205" r="11" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/><circle cx="350" cy="205" r="11" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/><circle cx="420" cy="205" r="11" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/><circle cx="490" cy="205" r="11" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/><circle cx="560" cy="205" r="11" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/>
+    <line x1="291" y1="205" x2="339" y2="205" stroke="#10B981" stroke-width="1.6"/><line x1="361" y1="205" x2="409" y2="205" stroke="#10B981" stroke-width="1.6"/><line x1="431" y1="205" x2="479" y2="205" stroke="#10B981" stroke-width="1.6"/><line x1="501" y1="205" x2="549" y2="205" stroke="#10B981" stroke-width="1.6"/>
+    <text x="420" y="187" fill="#047857" font-weight="400" text-anchor="middle">moves toward apple, survives</text>
+    <rect x="592" y="189" width="160" height="32" rx="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6"/><text x="672" y="209" fill="#065F46" font-weight="700" text-anchor="middle">R = +1.4  ★ best</text>
+  </g>
+  <!-- LANE DOWN (y=300) -->
+  <g font-size="10" font-weight="600">
+    <path d="M 160,310 L 200,310 Q 215,310 235,310" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+    <text x="200" y="332" fill="#92400E">↓ DOWN</text>
+    <circle cx="280" cy="310" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="350" cy="310" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="420" cy="310" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="490" cy="310" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="560" cy="310" r="10" fill="#F5F3FF" stroke="#8B5CF6"/>
+    <line x1="290" y1="310" x2="340" y2="310" stroke="#CBD5E1" stroke-width="1.4"/><line x1="360" y1="310" x2="410" y2="310" stroke="#CBD5E1" stroke-width="1.4"/><line x1="430" y1="310" x2="480" y2="310" stroke="#CBD5E1" stroke-width="1.4"/><line x1="500" y1="310" x2="550" y2="310" stroke="#CBD5E1" stroke-width="1.4"/>
+    <rect x="592" y="294" width="150" height="32" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.3"/><text x="667" y="314" fill="#475569" text-anchor="middle">R = +0.3</text>
+  </g>
+  <!-- LANE LEFT (y=395) -->
+  <g font-size="10" font-weight="600">
+    <path d="M 160,320 L 195,320 Q 215,320 215,360 L 215,388 Q 215,395 235,395" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#a)"/>
+    <text x="222" y="385" fill="#92400E">← LEFT</text>
+    <circle cx="280" cy="395" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="350" cy="395" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="420" cy="395" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="490" cy="395" r="10" fill="#F5F3FF" stroke="#8B5CF6"/><circle cx="560" cy="395" r="10" fill="#F5F3FF" stroke="#8B5CF6"/>
+    <line x1="290" y1="395" x2="340" y2="395" stroke="#CBD5E1" stroke-width="1.4"/><line x1="360" y1="395" x2="410" y2="395" stroke="#CBD5E1" stroke-width="1.4"/><line x1="430" y1="395" x2="480" y2="395" stroke="#CBD5E1" stroke-width="1.4"/><line x1="500" y1="395" x2="550" y2="395" stroke="#CBD5E1" stroke-width="1.4"/>
+    <text x="420" y="377" fill="#64748B" font-weight="400" text-anchor="middle">(4⁵ = 1024 sequences scored in parallel)</text>
+    <rect x="592" y="379" width="150" height="32" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.3"/><text x="667" y="399" fill="#475569" text-anchor="middle">R = −0.2</text>
+  </g>
+
+  <!-- scoring formula -->
+  <rect x="800" y="100" width="350" height="118" rx="12" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="818" y="126" font-size="13" font-weight="700" fill="#155E75">Score of each imagined rollout</text>
+  <text x="818" y="150" font-size="12" font-weight="600" fill="#0E7490">R = Σₖ γᵏ · aliveₖ · r̂(ŝₖ, aₖ)</text>
+  <text x="818" y="172" font-size="11" fill="#0E7490">aliveₖ₊₁ = aliveₖ · (1 − p(deathₖ))</text>
+  <text x="818" y="194" font-size="10.5" fill="#155E75">reward head → r̂   ·   done head → p(death)</text>
+  <text x="818" y="210" font-size="10.5" fill="#155E75">survival-weighted: dying truncates future reward</text>
+
+  <!-- argmax / execute -->
+  <rect x="800" y="250" width="350" height="96" rx="12" fill="#ECFDF5" stroke="#10B981" stroke-width="1.6" filter="url(#sh)"/>
+  <text x="818" y="276" font-size="13" font-weight="700" fill="#065F46">argmax → play FIRST action only</text>
+  <text x="818" y="299" font-size="11.5" fill="#047857">Best lane = RIGHT → execute one step in the real game.</text>
+  <text x="818" y="318" font-size="11.5" fill="#047857">Then re-encode the real observation and re-plan.</text>
+  <text x="818" y="337" font-size="11.5" font-weight="600" fill="#065F46">= receding horizon → corrects drift every step.</text>
+
+  <!-- receding horizon loop -->
+  <path d="M 975,346 L 975,430 Q 975,450 955,450 L 120,450 Q 100,450 100,430 L 100,332"
+        fill="none" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6,4" stroke-linecap="round" marker-end="url(#aa)"/>
+  <rect x="430" y="430" width="320" height="40" rx="10" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.4"/>
+  <text x="590" y="455" font-size="12" font-weight="600" fill="#92400E" text-anchor="middle">execute 1 action → observe → encode → replan</text>
+
+  <text x="40" y="520" font-size="12" font-weight="700" fill="#334155">The key idea (Yann LeCun, "inference by optimization"):</text>
+  <text x="40" y="540" font-size="11.5" fill="#475569">the agent does not learn a reflex `state → action`. It searches, inside its own world model, for the action sequence that leads to the</text>
+  <text x="40" y="558" font-size="11.5" fill="#475569">most desirable imagined future - and acts on it. The "brain" that decides is the planner + the model, not a trained policy network.</text>
+</svg>

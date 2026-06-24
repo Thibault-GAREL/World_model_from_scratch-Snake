@@ -1,0 +1,65 @@
+<svg viewBox="0 0 1160 560" xmlns="http://www.w3.org/2000/svg" width="1160" height="560">
+  <title>JEPA vs generative prediction - predict representations, not pixels</title>
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+      text { font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+    <filter id="sh" x="-6%" y="-6%" width="115%" height="125%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/></filter>
+    <marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#64748B"/></marker>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#F43F5E"/></marker>
+    <marker id="ae" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#10B981"/></marker>
+  </defs>
+  <rect width="1160" height="560" fill="#FFFFFF"/>
+  <text x="40" y="44" font-size="19" font-weight="700" fill="#111827">Why JEPA predicts representations, not pixels</text>
+  <text x="40" y="66" font-size="12.5" fill="#6B7280">the difference between a generative world model and a Joint-Embedding Predictive Architecture</text>
+
+  <!-- ============ TOP: GENERATIVE ============ -->
+  <rect x="36" y="96" width="1088" height="178" rx="14" fill="#F43F5E0D" stroke="#F43F5E55" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <rect x="54" y="86" width="430" height="22" rx="11" fill="#F43F5E"/>
+  <text x="68" y="101" font-size="11" font-weight="600" fill="#FFF">❌ GENERATIVE  (VAE / pixel-decoder, e.g. Dreamer)</text>
+
+  <g font-size="11.5" font-weight="600">
+    <rect x="60" y="150" width="92" height="64" rx="9" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.4" filter="url(#sh)"/><text x="106" y="178" fill="#92400E" text-anchor="middle">oₜ</text><text x="106" y="196" font-size="9.5" fill="#B45309" text-anchor="middle">3×8×16</text>
+    <rect x="196" y="150" width="96" height="64" rx="9" fill="#EEF2FF" stroke="#6366F1" stroke-width="1.4" filter="url(#sh)"/><text x="244" y="186" fill="#3730A3" text-anchor="middle">Encoder</text>
+    <rect x="336" y="158" width="70" height="48" rx="9" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.4" filter="url(#sh)"/><text x="371" y="186" fill="#6D28D9" text-anchor="middle">Pred</text>
+    <rect x="450" y="150" width="96" height="64" rx="9" fill="#FFEDD5" stroke="#EA580C" stroke-width="1.4" filter="url(#sh)"/><text x="498" y="180" fill="#9A3412" text-anchor="middle">Decoder</text><text x="498" y="197" font-size="9" fill="#C2410C" text-anchor="middle">(extra net)</text>
+    <rect x="590" y="150" width="104" height="64" rx="9" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.4" filter="url(#sh)"/><text x="642" y="176" fill="#92400E" text-anchor="middle">predicted</text><text x="642" y="194" font-size="9.5" fill="#B45309" text-anchor="middle">next FRAME</text>
+  </g>
+  <line x1="152" y1="182" x2="194" y2="182" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="292" y1="182" x2="334" y2="182" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="406" y1="182" x2="448" y2="182" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="546" y1="182" x2="588" y2="182" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="694" y1="182" x2="742" y2="182" stroke="#F43F5E" stroke-width="1.6" marker-end="url(#ar)"/>
+  <rect x="744" y="150" width="150" height="64" rx="9" fill="#FFF1F2" stroke="#F43F5E" stroke-width="1.4" filter="url(#sh)"/>
+  <text x="819" y="176" font-size="11.5" font-weight="600" fill="#9F1239" text-anchor="middle">pixel loss</text><text x="819" y="194" font-size="9.5" fill="#BE123C" text-anchor="middle">‖frame − frame‖²</text>
+  <text x="930" y="172" font-size="11" fill="#9F1239">⚠ must reproduce EVERY pixel,</text>
+  <text x="930" y="190" font-size="11" fill="#9F1239">including the random apple it</text>
+  <text x="930" y="208" font-size="11" fill="#9F1239">cannot predict → wasted capacity</text>
+
+  <!-- ============ BOTTOM: JEPA ============ -->
+  <rect x="36" y="316" width="1088" height="208" rx="14" fill="#10B9810D" stroke="#10B98155" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <rect x="54" y="306" width="430" height="22" rx="11" fill="#10B981"/>
+  <text x="68" y="321" font-size="11" font-weight="600" fill="#FFF">✅ JEPA  (latent prediction - this project)</text>
+
+  <g font-size="11.5" font-weight="600">
+    <rect x="60" y="372" width="92" height="64" rx="9" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.4" filter="url(#sh)"/><text x="106" y="400" fill="#92400E" text-anchor="middle">oₜ</text><text x="106" y="418" font-size="9.5" fill="#B45309" text-anchor="middle">3×8×16</text>
+    <rect x="196" y="372" width="96" height="64" rx="9" fill="#EEF2FF" stroke="#6366F1" stroke-width="1.4" filter="url(#sh)"/><text x="244" y="408" fill="#3730A3" text-anchor="middle">Encoder</text>
+    <rect x="336" y="380" width="76" height="48" rx="9" fill="#FFFFFF" stroke="#334155" stroke-width="1.6" filter="url(#sh)"/><text x="374" y="408" fill="#1E293B" text-anchor="middle">sₜ</text>
+    <rect x="456" y="372" width="86" height="64" rx="9" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.4" filter="url(#sh)"/><text x="499" y="400" fill="#6D28D9" text-anchor="middle">Predictor</text><text x="499" y="417" font-size="9" fill="#7C3AED" text-anchor="middle">(no decoder)</text>
+    <rect x="590" y="372" width="104" height="64" rx="9" fill="#FAF5FF" stroke="#8B5CF6" stroke-width="1.4" stroke-dasharray="4,3" filter="url(#sh)"/><text x="642" y="400" fill="#6D28D9" text-anchor="middle">ŝₜ₊₁</text><text x="642" y="417" font-size="9.5" fill="#7C3AED" text-anchor="middle">predicted latent</text>
+  </g>
+  <line x1="152" y1="404" x2="194" y2="404" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="292" y1="404" x2="334" y2="404" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="412" y1="404" x2="454" y2="404" stroke="#64748B" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="542" y1="404" x2="588" y2="404" stroke="#8B5CF6" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="694" y1="404" x2="742" y2="404" stroke="#10B981" stroke-width="1.6" marker-end="url(#ae)"/>
+  <rect x="744" y="372" width="160" height="64" rx="9" fill="#ECFDF5" stroke="#10B981" stroke-width="1.4" filter="url(#sh)"/>
+  <text x="824" y="398" font-size="11.5" font-weight="600" fill="#065F46" text-anchor="middle">latent loss</text><text x="824" y="416" font-size="9.5" fill="#047857" text-anchor="middle">‖ŝₜ₊₁ − sg(sₜ₊₁)‖²</text>
+  <!-- target encoder -->
+  <rect x="590" y="462" width="160" height="50" rx="9" fill="#F0F9FF" stroke="#0EA5E9" stroke-width="1.4" stroke-dasharray="4,3"/><text x="670" y="483" font-size="10.5" font-weight="600" fill="#075985" text-anchor="middle">Target Encoder (EMA)</text><text x="670" y="498" font-size="9" fill="#0369A1" text-anchor="middle">oₜ₊₁ → sₜ₊₁ (stop-grad)</text>
+  <path d="M 750,487 L 800,487 Q 824,487 824,460 L 824,436" fill="none" stroke="#0EA5E9" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ae)"/>
+  <text x="930" y="392" font-size="11" fill="#065F46">✔ predicts MEANING, stays</text>
+  <text x="930" y="410" font-size="11" fill="#065F46">invariant to unpredictable detail</text>
+  <text x="930" y="428" font-size="11" fill="#065F46">→ efficient, no decoder, stable</text>
+</svg>

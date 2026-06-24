@@ -32,23 +32,44 @@ o_{t+1} ┤                          └── loss latente vs ──┐
 
 Loss totale (dans `train.py`) : `L_pred (latente) + λ·VICReg + reward (MSE) + done (BCE)`, avec mise à jour EMA du target encoder à chaque step.
 
+### Prédiction multi-pas (important pour le planning)
+
+Le prédicteur s'applique de façon **autorégressive** dans le latent (`ŝ_{t+2} = Pred(ŝ_{t+1}, a)`), sans jamais re-décoder. Pour que les rollouts longs restent fiables, deux mécanismes sont prévus :
+- **Entraînement multi-step** : déplier le prédicteur sur K pas (def. K=5) et superviser chaque `ŝ` contre sa cible encodée → réduit la dérive (compounding error). Inspiré de Dreamer / TD-MPC.
+- **MPC en boucle fermée (receding horizon)** : planifier H pas, n'exécuter que le 1er, ré-encoder l'observation réelle, re-planifier. Corrige la dérive à chaque pas.
+
+Limite intrinsèque : au-delà d'un **repas**, la position de la nouvelle pomme est aléatoire → futur imprévisible. On planifie donc vers la pomme courante (H court : 3-5 au départ).
+
 ### ⚠️ Règle d'or : le collapse
 
 Un JEPA peut « tricher » en faisant sortir une **constante** par l'encodeur (loss latente nulle, modèle inutile). Toute implémentation de l'encodeur/loss DOIT conserver les 3 parades : **stop-gradient** sur le target encoder, **EMA** du target encoder, **VICReg** (terme de variance). Monitorer en continu la **variance / le rang des embeddings** dans `validation/metrics.py` - une chute vers 0 = collapse.
 
+## Résultats & apprentissages clés (pipeline validé)
+
+Pipeline entraîné de bout en bout. Modèle = 1.4M params, ~1 min sur GPU. **MPC mean ≈ 7.8, max 17, survie ~132 pas** (vs random 0.07, plafond heuristique greedy 21.3) - le world model joue **sans aucune policy apprise**. `emb_std ≈ 1.0`, effective_rank ≈ 83/128 (jamais de collapse).
+
+Quatre pièges résolus - **ne pas régresser dessus** :
+
+1. **Sélection du modèle sur la loss des têtes (reward+done), PAS la loss totale.** La MSE de prédiction latente n'est **pas invariante à l'échelle** : elle grossit quand VICReg étend le latent (emb_std 0→1), donc sélectionner dessus récompense l'état dégénéré du début. Les cibles reward/done sont à échelle fixe → fiables.
+2. **Têtes reward/done supervisées sur le VRAI latent encodé** (`model.encode(obs_k)`), pas sur le latent prédit `ŝ` du rollout (qui a dérivé). Sinon la mort (en fin de fenêtre, là où `ŝ` dérive le plus) est mal apprise. Ce fix : done recall 0.05 → 0.77.
+3. **Reward shaping dense obligatoire** (`R_SHAPING=0.1` × réduction de distance Manhattan à la pomme, dans `snake_env.py`). Sans lui, le planner n'a aucun signal vers une pomme hors horizon → il erre. Avec : MPC mean 1.1 → 7.8.
+4. **`done` déséquilibré** (~2% de morts) : BCE avec `pos_weight` (cap 15) + métriques **recall/precision/F1**, jamais l'accuracy (trompeuse à 98%).
+
+Horizon MPC optimal = **5** (balayé) ; H≥6 régresse à cause du drift.
+
 ## Structure du code
 
-Le `src/` actuel est un **squelette de stubs** (`raise NotImplementedError` / docstrings vides) issu du template `thibault-ia-init`. Les modules à remplir, par ordre de dépendance :
+Tous les modules sont **implémentés et vérifiés**. Lancer dans cet ordre : `make_dataset` → `train` → `metrics` (qui appelle le `planner`).
 
 | Module | Rôle | État |
 |---|---|---|
-| `src/envs/snake_env.py` | **À créer en premier.** Refactor de `snake.py` en environnement headless type Gym (`reset()` / `step(a) → obs, reward, done`), observation = grille. | à créer |
-| `src/data/make_dataset.py` | Génère des trajectoires `(o_t, a_t, r_t, done, o_{t+1})` → `data/2-processed`. | stub |
-| `src/models/model.py` | `Encoder` (CNN), `Predictor` (MLP), `TargetEncoder` (EMA), `RewardHead`, `DoneHead`. | stub |
-| `src/models/train.py` | Boucle d'entraînement, loss JEPA, EMA, logging MLflow. | stub |
-| `src/models/planner.py` | **À créer.** Contrôleur MPC latent (greedy 1-pas → arbre / CEM). | à créer |
-| `src/validation/metrics.py` | Erreur de prédiction, précision reward/done, **moniteur de collapse**, dérive sur rollout, score Snake vs baseline. | stub |
-| `src/config.py` | Config Pydantic `BaseSettings` (paths, seed, nom d'expérience MLflow). Lit un `.env` optionnel. | OK |
+| `src/envs/snake_env.py` | Env headless type Gym (`reset()` / `step(a) → obs, reward, done`), obs grille `3×8×16`, **reward shaping** vers la pomme. | ✅ |
+| `src/data/make_dataset.py` | Trajectoires `(o,a,r,done,o')` via politique mixte ε-greedy → `data/2-processed/snake_transitions.npz`. | ✅ |
+| `src/models/model.py` | `Encoder` (CNN), `Predictor` (MLP résiduel), `TargetEncoder` (EMA), `reward_head`, `done_head`, `ema_update`. | ✅ |
+| `src/models/train.py` | Loss JEPA + VICReg + EMA + multi-step, têtes sur vrai latent, sélection sur head loss, MLflow. | ✅ |
+| `src/models/planner.py` | Contrôleur **MPC latent** (recherche exhaustive `4^H` vectorisée, survival-weighted return). | ✅ |
+| `src/validation/metrics.py` | Collapse monitor (std + rang), drift multi-pas, qualité reward/done, éval agent vs baselines. | ✅ |
+| `src/config.py` | Config Pydantic `BaseSettings` : tous les hyperparamètres + paths + MLflow. | ✅ |
 
 ## `snake.py` - état actuel et pièges
 
