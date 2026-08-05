@@ -7,8 +7,14 @@ Action-conditioned JEPA world model:
     predictor      : (s_t, a_t) -> ŝ_{t+1}   (residual, in latent space)
     reward_head    : (s_t, a_t) -> r̂
     done_head      : (s_t, a_t) -> done logit
+    space_head     : (s_t, a_t) -> fraction of the board still reachable
 
-The JEPA loss, VICReg and the EMA schedule live in ``train.py``; this file only
+The space head is what lets a short-horizon planner avoid trapping itself. The
+done head only sees deaths inside the horizon, so with H=5 the agent happily
+walks into a pocket it will die in 20 steps later. The free-space head turns
+that long-term consequence into a signal readable at the current step.
+
+The JEPA loss, VICReg and the EMA schedule live in ``train.py``, this file only
 defines the modules and the elementary operations (encode / predict / EMA copy).
 """
 
@@ -64,6 +70,8 @@ class WorldModel(nn.Module):
         self.predictor = _mlp(dim + n_actions, hidden, dim)
         self.reward_head = _mlp(dim + n_actions, hidden, 1)
         self.done_head = _mlp(dim + n_actions, hidden, 1)
+        self.space_head = _mlp(dim + n_actions, hidden, 1)
+        self._ema_pairs = None        # lazily cached parameter lists for the EMA
 
     # --- elementary ops -------------------------------------------------
     def _cat_action(self, s: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
@@ -87,10 +95,25 @@ class WorldModel(nn.Module):
     def done_logit(self, s: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
         return self.done_head(self._cat_action(s, a)).squeeze(-1)
 
+    def space_logit(self, s: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
+        return self.space_head(self._cat_action(s, a)).squeeze(-1)
+
+    def space(self, s: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
+        """Predicted fraction of the board still reachable after the action."""
+        return torch.sigmoid(self.space_logit(s, a))
+
     @torch.no_grad()
     def ema_update(self, tau: float = 0.99) -> None:
-        """Move the target encoder toward the online encoder: θ_t ← τ θ_t + (1−τ) θ."""
-        for tp, p in zip(self.target_encoder.parameters(), self.encoder.parameters()):
-            tp.mul_(tau).add_(p, alpha=1.0 - tau)
+        """Move the target encoder toward the online encoder: θ_t ← τ θ_t + (1−τ) θ.
+
+        Fused over the parameter list: on a model this small the per-tensor loop
+        was launching more kernels than the forward pass itself.
+        """
+        if self._ema_pairs is None:
+            self._ema_pairs = (list(self.target_encoder.parameters()),
+                               list(self.encoder.parameters()))
+        target_params, online_params = self._ema_pairs
+        torch._foreach_mul_(target_params, tau)
+        torch._foreach_add_(target_params, online_params, alpha=1.0 - tau)
         for tb, b in zip(self.target_encoder.buffers(), self.encoder.buffers()):
             tb.copy_(b)

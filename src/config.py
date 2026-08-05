@@ -23,9 +23,24 @@ class Config(BaseSettings):
     # MLflow
     MLFLOW_EXPERIMENT_NAME: str = "jepa-world-model"
 
+    # --- Environment ---
+    ENV_MAX_STEPS: int = 1000     # episode cap (500 mechanically caps the score ~30)
+    R_SHAPING: float = 0.4        # potential-based guidance per cell closer to the apple
+    #   Scale matters for *learnability*, not for optimality: potential-based
+    #   shaping leaves the optimal policy unchanged at any scale, but a +-0.1
+    #   target next to +-1 food/death events contributes ~1% of the reward MSE,
+    #   so the head simply never learns it (measured MAE 0.276 at 0.1).
+
     # --- Data ---
     TRANSITIONS_FILE: str = "snake_transitions.npz"   # under DATA_PROCESSED
     VAL_FRACTION: float = 0.1
+    DATA_N_TRANSITIONS: int = 200_000
+    DATA_EPSILON: float = 0.25    # fully random actions (they kill -> done signal)
+    DATA_SAFE_EXPLORE: float = 0.25    # random *legal* actions (action coverage, no death)
+    DATA_CLEAN_FRACTION: float = 0.6   # share of TRANSITIONS from the pure oracle
+    DATA_ORACLE_SAFE: bool = True  # flood-fill safety check (reaches long snakes)
+    DATA_ON_DEVICE: bool = True   # keep the dataset in VRAM (kills the per-batch copy)
+    DATA_DEVICE_BUDGET_GB: float = 2.5   # above this, stream from RAM instead
 
     # --- Model ---
     MODEL_NAME: str = "jepa-world-model"
@@ -50,11 +65,23 @@ class Config(BaseSettings):
     REWARD_COEF: float = 10.0     # reward head (MSE) weight (sparse signal -> upweighted)
     REWARD_EVENT_WEIGHT: float = 5.0   # extra weight on non-zero rewards (food / death)
     DONE_COEF: float = 2.0        # done head (BCE) weight
-    DONE_POS_WEIGHT_CAP: float = 15.0  # cap for BCE pos_weight (class imbalance)
+    DONE_POS_WEIGHT_CAP: float = 40.0  # cap for BCE pos_weight (class imbalance)
+    SPACE_COEF: float = 2.0       # free-space head (BCE) weight, 0 disables the head
 
     # --- Planning (MPC) ---
     MPC_HORIZON: int = 5          # planning depth at play time (best by horizon sweep)
     MPC_GAMMA: float = 0.99       # discount in rollout scoring
+    MPC_SPACE_COEF: float = 0.3   # weight of the predicted free space in the score
+
+    # --- DAgger-style iterative data collection ---
+    DAGGER_ROUNDS: int = 3        # collect-with-planner -> retrain cycles
+    DAGGER_TRANSITIONS: int = 100_000   # new transitions collected per round
+    DAGGER_EPSILON: float = 0.05  # exploration noise while collecting with the planner
+    DAGGER_KEEP: float = 0.6      # fraction of the previous dataset kept each round
+
+    # --- Evaluation ---
+    EVAL_EPISODES: int = 30
+    EVAL_MAX_STEPS: int = 1000
 
 
 config = Config()

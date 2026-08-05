@@ -96,9 +96,71 @@ def head_quality(model, split, device, batch: int = 2048) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# 3b. Action ranking: can the heads tell the four actions apart?
+# --------------------------------------------------------------------------- #
+@torch.no_grad()
+def action_ranking(model, device, steps: int = 400, seed: int = 5) -> dict:
+    """Compare predicted reward / death against ground truth, per action.
+
+    The head losses say how well the model fits the dataset, this says whether
+    the planner can act on it. Only the *ranking* of the four actions matters:
+    a head with a small MSE that still ranks actions wrongly is useless, and
+    that is exactly the failure this project hit (MAE 0.28 on a +-0.1 signal).
+    Random guessing scores 25%.
+    """
+    from src.envs.snake_env import MOVES, OPPOSITE, GRID_W, GRID_H
+
+    def truth(env, action):
+        direction = env.direction if action == OPPOSITE[env.direction] else action
+        dx, dy = MOVES[direction]
+        hx, hy = env.snake[0]
+        nx, ny = hx + dx, hy + dy
+        if not (0 <= nx < GRID_W and 0 <= ny < GRID_H) or (nx, ny) in env.snake:
+            return -1.0, 1.0
+        if env.apple is not None and (nx, ny) == env.apple:
+            return 1.0, 0.0
+        prev = abs(hx - env.apple[0]) + abs(hy - env.apple[1])
+        new = abs(nx - env.apple[0]) + abs(ny - env.apple[1])
+        return config.R_SHAPING * (prev - new), 0.0
+
+    rng = np.random.default_rng(seed)
+    env = SnakeEnv(seed=seed)
+    obs = env.reset()
+    actions = torch.arange(N_ACTIONS, device=device)
+    errs, best_ok, safe_ok, n_rank, n_safe = [], 0, 0, 0, 0
+
+    for _ in range(steps):
+        x = torch.as_tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
+        s = model.encode(x).expand(N_ACTIONS, -1)
+        r_hat = model.reward(s, actions).cpu().numpy()
+        d_hat = torch.sigmoid(model.done_logit(s, actions)).cpu().numpy()
+        r_true, d_true = np.array([truth(env, a) for a in range(N_ACTIONS)]).T
+
+        errs.append(np.abs(r_hat - r_true))
+        if r_true.max() > r_true.min():
+            n_rank += 1
+            best_ok += int(np.argmax(r_hat) == np.argmax(r_true))
+        if (d_true == 0).any():
+            n_safe += 1
+            safe_ok += int(d_true[int(np.argmin(d_hat))] == 0)
+
+        obs, _, done, _ = env.step(behavior_action(env, rng, epsilon=0.0))
+        if done:
+            obs = env.reset()
+
+    return {
+        "reward_mae": round(float(np.concatenate(errs).mean()), 4),
+        "reward_scale": config.R_SHAPING,
+        "best_action_agreement": round(best_ok / max(n_rank, 1), 3),   # 0.25 = chance
+        "safest_action_is_safe": round(safe_ok / max(n_safe, 1), 3),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # 4. Agent evaluation (MPC vs baselines)
 # --------------------------------------------------------------------------- #
-def evaluate_agent(model, device, episodes: int = 30) -> dict:
+def evaluate_agent(model, device, episodes: int | None = None) -> dict:
+    episodes = config.EVAL_EPISODES if episodes is None else episodes
     planner = LatentMPC(model, horizon=config.MPC_HORIZON,
                         gamma=config.MPC_GAMMA, device=device)
     rng = np.random.default_rng(0)
@@ -109,7 +171,7 @@ def evaluate_agent(model, device, episodes: int = 30) -> dict:
     }
     out = {}
     for name, policy in policies.items():
-        env = SnakeEnv(max_steps=500, seed=2026)
+        env = SnakeEnv(max_steps=config.EVAL_MAX_STEPS, seed=2026)
         eps = [play_episode(env, policy) for _ in range(episodes)]
         scores = [e["score"] for e in eps]
         out[name] = {"mean_score": round(float(np.mean(scores)), 2),
@@ -121,7 +183,8 @@ def evaluate_agent(model, device, episodes: int = 30) -> dict:
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
-def main(episodes: int = 30) -> None:
+def main(episodes: int | None = None) -> None:
+    episodes = config.EVAL_EPISODES if episodes is None else episodes
     device = resolve_device(config.DEVICE)
     _, val_split, _ = load_splits(config, config.ROLLOUT_K)
     model = load_world_model(device)
@@ -130,6 +193,7 @@ def main(episodes: int = 30) -> None:
         "latent_health": latent_health(model, val_split, device),
         "drift_per_horizon": prediction_drift(model, val_split, device),
         "head_quality": head_quality(model, val_split, device),
+        "action_ranking": action_ranking(model, device),
         "agent": evaluate_agent(model, device, episodes),
     }
 

@@ -48,11 +48,14 @@ class LatentMPC:
     """Receding-horizon planner over imagined latent rollouts."""
 
     def __init__(self, model: WorldModel, horizon: int = 4, gamma: float = 0.99,
-                 device: torch.device | str = "cpu"):
+                 device: torch.device | str = "cpu", space_coef: float | None = None):
         self.model = model.eval()
         self.device = torch.device(device)
         self.gamma = gamma
         self.horizon = horizon
+        # Free space keeps the planner from walking into a pocket it will only
+        # die in *after* the horizon, which the done head cannot see.
+        self.space_coef = config.MPC_SPACE_COEF if space_coef is None else space_coef
         # All action sequences of length `horizon` (M = N_ACTIONS ** horizon).
         seqs = list(itertools.product(range(N_ACTIONS), repeat=horizon))
         self.seqs = torch.tensor(seqs, dtype=torch.long, device=self.device)
@@ -71,6 +74,8 @@ class LatentMPC:
             a_k = self.seqs[:, k]
             r = self.model.reward(s, a_k)
             d = torch.sigmoid(self.model.done_logit(s, a_k))
+            if self.space_coef:
+                r = r + self.space_coef * self.model.space(s, a_k)
             ret = ret + g * alive * r                  # death reward (-1) is included via r
             alive = alive * (1.0 - d)                  # discount future by survival prob
             s = self.model.predict(s, a_k)
@@ -80,8 +85,9 @@ class LatentMPC:
         return int(self.seqs[best, 0])
 
 
-def play_episode(env: SnakeEnv, policy, max_steps: int = 500) -> dict:
-    """Run one episode; ``policy`` is a callable (env, obs) -> action."""
+def play_episode(env: SnakeEnv, policy, max_steps: int | None = None) -> dict:
+    """Run one episode. ``policy`` is a callable (env, obs) -> action."""
+    max_steps = config.EVAL_MAX_STEPS if max_steps is None else max_steps
     obs = env.reset()
     total_r, info = 0.0, {"score": 0, "steps": 0}
     for _ in range(max_steps):
@@ -92,17 +98,19 @@ def play_episode(env: SnakeEnv, policy, max_steps: int = 500) -> dict:
     return {"score": info["score"], "steps": info["steps"], "return": total_r}
 
 
-def main(episodes: int = 30) -> None:
+def main(episodes: int | None = None) -> None:
+    episodes = config.EVAL_EPISODES if episodes is None else episodes
     device = resolve_device(config.DEVICE)
     model = load_world_model(device)
     planner = LatentMPC(model, horizon=config.MPC_HORIZON,
                         gamma=config.MPC_GAMMA, device=device)
 
-    env = SnakeEnv(max_steps=500, seed=2026)
+    env = SnakeEnv(max_steps=config.EVAL_MAX_STEPS, seed=2026)
     scores = [play_episode(env, lambda e, o: planner.act(o))["score"]
               for _ in range(episodes)]
-    print(f"[MPC] horizon={config.MPC_HORIZON} | {episodes} episodes "
-          f"| mean score {np.mean(scores):.2f} | max {int(np.max(scores))}")
+    print(f"[MPC] horizon={config.MPC_HORIZON} space_coef={planner.space_coef} "
+          f"| {episodes} episodes | mean score {np.mean(scores):.2f} "
+          f"| max {int(np.max(scores))}")
 
 
 if __name__ == "__main__":

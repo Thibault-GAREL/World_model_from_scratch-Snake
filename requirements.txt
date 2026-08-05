@@ -1,0 +1,20 @@
+# Core: dataset, world model, training, planning, evaluation.
+# The model is tiny (1.5M params), CPU is a perfectly valid target.
+# For a CPU-only machine (a RunPod CPU pod), install torch from the CPU index:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.4
+numpy>=1.26,<3
+mlflow>=2.10
+pydantic-settings>=2.0
+tqdm>=4.66
+
+# Figures (src/validation/plots.py)
+matplotlib>=3.8
+umap-learn>=0.5
+
+# Only needed to render the original game and the pygame GIF (snake.py,
+# plots.render_pygame_gif). Headless machines need SDL_VIDEODRIVER=dummy.
+pygame>=2.6
+
+# Tests
+pytest>=8.0

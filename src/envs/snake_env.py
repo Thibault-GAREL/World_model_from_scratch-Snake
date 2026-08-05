@@ -13,9 +13,12 @@ from __future__ import annotations
 
 import numpy as np
 
+from src.config import config
+
 # --- Grid ---------------------------------------------------------------
 GRID_W = 16  # columns (x)
 GRID_H = 8   # rows (y)
+N_CELLS = GRID_W * GRID_H
 
 # --- Actions ------------------------------------------------------------
 UP, RIGHT, DOWN, LEFT = 0, 1, 2, 3
@@ -33,15 +36,38 @@ N_CHANNELS = 3
 R_FOOD = 1.0
 R_DEATH = -1.0
 R_STEP = 0.0
-R_SHAPING = 0.1   # potential-based reward per cell closer/further to the apple
+R_SHAPING = config.R_SHAPING   # potential-based reward per cell closer/further
+
+
+def reachable_cells(occupied: set[tuple[int, int]], start: tuple[int, int]) -> int:
+    """Number of free cells reachable from ``start`` (flood fill, body = wall).
+
+    This is the "am I about to trap myself?" signal. A greedy Snake player dies
+    by walking into a pocket smaller than its own body, and a short-horizon
+    planner cannot see that pocket either, so both need this measure.
+    """
+    x, y = start
+    if not (0 <= x < GRID_W and 0 <= y < GRID_H) or start in occupied:
+        return 0
+    seen = {start}
+    stack = [start]
+    while stack:
+        cx, cy = stack.pop()
+        for dx, dy in MOVES.values():
+            nxt = (cx + dx, cy + dy)
+            if (0 <= nxt[0] < GRID_W and 0 <= nxt[1] < GRID_H
+                    and nxt not in occupied and nxt not in seen):
+                seen.add(nxt)
+                stack.append(nxt)
+    return len(seen)
 
 
 class SnakeEnv:
     """A minimal, deterministic-except-for-food Snake environment."""
 
-    def __init__(self, max_steps: int = 500, shaping: float = R_SHAPING,
+    def __init__(self, max_steps: int | None = None, shaping: float = R_SHAPING,
                  seed: int | None = None):
-        self.max_steps = max_steps
+        self.max_steps = config.ENV_MAX_STEPS if max_steps is None else max_steps
         self.shaping = shaping
         self.rng = np.random.default_rng(seed)
         self.reset()
@@ -123,3 +149,42 @@ class SnakeEnv:
     def score(self) -> int:
         """Number of apples eaten (snake length minus the initial head)."""
         return len(self.snake) - 1
+
+    # --- free-space helpers (oracle safety + free-space head supervision) ---
+    def legal_moves(self) -> list[int]:
+        """Actions that are neither a 180 degree reversal nor an instant death."""
+        out = []
+        for a in range(N_ACTIONS):
+            if a == OPPOSITE[self.direction]:
+                continue
+            dx, dy = MOVES[a]
+            nx, ny = self.snake[0][0] + dx, self.snake[0][1] + dy
+            if not (0 <= nx < GRID_W and 0 <= ny < GRID_H):
+                continue
+            if (nx, ny) in self.snake:
+                continue
+            out.append(a)
+        return out
+
+    def free_fraction(self) -> float:
+        """Fraction of the board reachable from the head (1.0 = wide open)."""
+        if self.done:
+            return 0.0
+        body = set(self.snake[1:])
+        return reachable_cells(body, self.snake[0]) / N_CELLS
+
+    def free_fraction_after(self, action: int) -> float:
+        """``free_fraction`` of the state that would follow ``action`` (0.0 if it kills).
+
+        Used by the oracle to refuse moves that lead into a pocket, without
+        mutating the environment.
+        """
+        direction = self.direction if action == OPPOSITE[self.direction] else action
+        dx, dy = MOVES[direction]
+        hx, hy = self.snake[0]
+        nx, ny = hx + dx, hy + dy
+        if not (0 <= nx < GRID_W and 0 <= ny < GRID_H) or (nx, ny) in self.snake:
+            return 0.0
+        ate = self.apple is not None and (nx, ny) == self.apple
+        body = set(self.snake if ate else self.snake[:-1])   # tail frees up unless we eat
+        return reachable_cells(body, (nx, ny)) / N_CELLS
