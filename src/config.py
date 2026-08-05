@@ -44,7 +44,7 @@ class Config(BaseSettings):
 
     # --- Model ---
     MODEL_NAME: str = "jepa-world-model"
-    EMBED_DIM: int = 128
+    EMBED_DIM: int = 256          # best of the RunPod sweep (128 scored lower)
     HIDDEN_DIM: int = 256
 
     # --- Training ---
@@ -59,10 +59,15 @@ class Config(BaseSettings):
 
     # --- JEPA / anti-collapse ---
     EMA_DECAY: float = 0.99       # target encoder momentum
-    PRED_COEF: float = 25.0       # latent prediction loss weight
+    # RunPod sweep 2026-08-05 (8 configs, 200k transitions, 40 epochs):
+    # REWARD_COEF is the dominant knob by far. The four runs at 50 took the four
+    # top places, the four at 10 the bottom four. Raising it lifted MPC from 3.75
+    # to 10.65, action-ranking from 38% to 47% and safe-action rate from 88% to
+    # 94%: the reward head was simply drowned by the latent prediction loss.
+    PRED_COEF: float = 5.0        # latent prediction loss weight (25 scored lower)
     STD_COEF: float = 25.0        # VICReg variance hinge weight
     COV_COEF: float = 1.0         # VICReg covariance weight
-    REWARD_COEF: float = 10.0     # reward head (MSE) weight (sparse signal -> upweighted)
+    REWARD_COEF: float = 50.0     # reward head (MSE) weight (10 scored far worse)
     REWARD_EVENT_WEIGHT: float = 5.0   # extra weight on non-zero rewards (food / death)
     DONE_COEF: float = 2.0        # done head (BCE) weight
     DONE_POS_WEIGHT_CAP: float = 40.0  # cap for BCE pos_weight (class imbalance)
